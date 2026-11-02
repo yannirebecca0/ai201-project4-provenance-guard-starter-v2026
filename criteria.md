@@ -44,61 +44,46 @@ Two things worth knowing before you pick numbers:
 ---
 ## 1.
 
-<!-- Your criterion. It must name a number. -->
+Of 10 completely human-written personal essays or poems submitted across three test trials, at most 1 is incorrectly labeled as high-confidence AI.
 
-
-
-**Why this target:**
-
-
+**Why this target:** 
+Accusing an authentic human writer of cheating is the most damaging failure mode for a publishing platform. A false positive breaks trust permanently, whereas a missed AI detection simply lets a piece slip through.
 
 ---
 
 ## 2.
 
-<!-- Your criterion. -->
+Clearly AI-generated text and clearly human-written text must produce average combined confidence scores separated by at least a 0.40 margin across standard test runs.
 
-
-
-**Why this target:**
-
-
+**Why this target:** 
+If the signals don't cleanly discriminate between the two extremes, the system will hover in a muddy middle ground where confidence scores are uninterpretable and actionable labels become arbitrary.
 
 ---
 
 ## 3.
 
-<!-- Your criterion. -->
+All three labels (`high-confidence AI`, `high-confidence human`, and `unsure`) must be reachable given a diverse set of test inputs spanning the 0.0 to 1.0 confidence spectrum.
 
-
-
-**Why this target:**
-
-
+**Why this target:** 
+Ensures that no threshold range is completely blocked off by dead code, and that the "unsure" band actually functions as a buffer zone for borderline writing instead of instantly defaulting to a binary verdict.
 
 ---
 
 ## 4.
 
-<!-- Your criterion. -->
+100% of appeals submitted with a valid `content_id` and reasoning string successfully update the item's status to `under_review` and append the record to the audit trail without throwing an error.
 
-
-
-**Why this target:**
-
-
+**Why this target:** 
+Writers who are flagged incorrectly must have a reliable, frictionless fallback mechanism. A broken or silent appeal path destroys accountability when the automated detection gets it wrong.
 
 ---
 
 ## 5.
 
-<!-- Your criterion. -->
+If an incoming submission contains empty text, missing keys, or text exceeding 10,000 words, the endpoint gracefully returns a `400` status code rather than crashing the server or hanging.
 
-
-
-**Why this target:**
-
-
+**Why this target:** 
+Production backends must be resilient against malformed client payloads or abuse. Crashing on bad inputs would allow simple client errors or denial-of-service attempts to take down the verification service.
 
 ---
 

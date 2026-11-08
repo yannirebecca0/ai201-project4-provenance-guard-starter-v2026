@@ -74,6 +74,10 @@ WEIGHT_STYLE_SIGNAL = 0.4
 HUMAN_THRESHOLD = 0.35
 AI_THRESHOLD = 0.70
 
+# Unit 8 improvement: fewer readable words than this and /submit refuses with
+# a 400 instead of scoring. See README, The Improvement.
+MIN_WORDS = 5
+
 # ⚠️ One thing that catches people out in Milestone 5. A weighted average can
 # only land between its two inputs — so while `style_signal` is still the stub
 # returning 0.5, the combined score can never leave 0.25–0.75 no matter what

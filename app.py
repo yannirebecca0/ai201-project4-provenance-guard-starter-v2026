@@ -189,6 +189,14 @@ def submit():
     if len(text.split()) > 10000:
         return _reject(payload, "/submit", "Text exceeds maximum allowed length of 10,000 words.")
 
+    # Unit 8 improvement: text the style signal can't read (emoji, non-Latin
+    # script, punctuation, one long word) left the model deciding alone, and it
+    # gave confident verdicts on it. Refuse rather than guess.
+    if len(stylometry.words(text)) < config.MIN_WORDS:
+        return _reject(payload, "/submit",
+                       f"We can't assess this text: it needs at least {config.MIN_WORDS} "
+                       "words we can read. We don't yet support non-Latin scripts.")
+
     content_id = str(uuid.uuid4())
 
     # Run both signals. The detector refuses text under three tokens.

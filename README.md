@@ -216,6 +216,12 @@ curl "http://127.0.0.1:5000/log?limit=2"
 - *What came back:* My first draft of criterion 1 used AI-generated paragraphs in place of my own writing. Claude pointed out that this would make the false-positive test meaningless, so I replaced them with ten real text messages I had sent. Claude wrote the five "clearly AI" paragraphs for criterion 2, the bad-input bodies, and `run_appeals.py` for criterion 4, then ran all three trials
 - *What I changed:* Supplied my own messages for criterion 1
 
+**Moment 7**
+
+- *What I asked for:* Evidence to diagnose the broken attacks, then help with the improvement and the final write-up
+- *What came back:* Claude grouped the 12 breaks into three patterns with both signal scores and the style sub-measures side by side, and asked me questions about each. I wrote the diagnoses. Claude corrected four factual errors in them (which numbers were model vs combined, which style measure moved, the actual regex) and I accepted those corrections. Claude chose and made the improvement (the 5-word minimum), re-ran everything, and drafted What's Still Broken and the production trade from my criteria.md reasoning
+- *What I changed:* Wrote the diagnoses for all three patterns and the "were my targets too low" answer
+
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 
 ---
@@ -730,14 +736,25 @@ It did nothing for Patterns A and B, and it wasn't meant to. It also has a cost:
 <!-- For each attack still getting through and each criterion still missed:
      what you'd do, and why you stopped. -->
 
+All five criteria are met, so everything below is an attack that still gets through. Seven remain. For all of them, the reason I stopped is the unit's one-change rule: fixing a second pattern would have made before and after impossible to compare.
 
+**Real writing called AI: FP05, FP06, FP07 (Pattern B).** This is the one I'd fix next, because it's the failure that hurts a real person. The model signal reads any predictable, formal or templated prose as AI, and the 0.6 weight lets it carry the verdict. What I'd do: raise the AI threshold so that only scores above about 0.80 get the "confident AI" label, and route 0.70–0.80 to unsure. Then re-test criterion 1 with formal writing of my own (an essay, a cover letter, instructions), because my current test only used casual texts and never covered this register. Expected cost: some of my clearly-AI samples (0.70–0.77) would drop to unsure, so criteria 2 and 3 would need re-checking.
+
+**AI text called human: EV01, EV08, PI02 (Pattern A).** Typos (EV01) and odd tokens (PI02) raise GPT-2's perplexity, and very short text (EV08) gives it too little to measure, so the model reads all three as human. What I'd do: make the model signal less sensitive to misspellings, for example by spell-normalising before scoring, and send anything under roughly 40 words to "unsure" instead of letting a 12-token perplexity decide. I stopped because both are changes to signal one, and the bigger underlying problem is that even clean AI text only scores 0.601 (unsure). That needs recalibrating the model's midpoint, which is a larger job than one fix.
+
+**EV05 (heavy human rewrite).** I'd leave this one. After a full human editing pass, the text is mostly human writing, and calling it human is arguably correct.
+
+**Outside the attack set:**
+- The rate limiter keys on `creator_id`, which callers can make up, so a script rotating IDs is never limited.
+- The limiter's counts live in memory and reset on every restart.
+- The new 5-word minimum refuses every non-Latin-script writer. The real fix is a style signal that reads Unicode words, so those writers get scored properly instead of turned away.
 
 **The trade I'd make if this ran for real:**
 
 <!-- Two sentences. Fewer wrong accusations means more AI text getting through.
      Say which way you'd go and WHO PAYS FOR IT. -->
 
-
+I'd go for fewer wrong accusations: widen the unsure band and only say "confident AI" when the score is very high, because a false accusation can cost a real writer their reputation, while a missed detection costs the site a little. The people who pay are the readers and honest writers on the platform, who will see more AI-written work slip through labelled "unsure" or even "human".
 
 <!-- ═════════════════════════════════════════════════════════════════════
 

@@ -352,6 +352,8 @@ From `logs/audit.jsonl`. Real writing called AI (FP07, FP05), non-English and no
 {"timestamp": "2026-11-08T19:24:11+00:00", "creator_id": "attacker_flood", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "5 per 1 minute"}
 ```
 
+Every decision in `logs/audit.jsonl` records all nine fields, except the very first entry (2026-11-02, my unit 7 sample run), which shows `combined_score: null` because it was written before I fixed `/submit` to log that field. I left it in rather than edit the log.
+
 PI04 (`<script>` in the text) and PI05 (fake JSON fields in the text) both HELD. The label text came back unchanged, and PI05's log line is still one well-formed JSON object, because `audit.py` writes with `json.dumps`, so the injected quotes are escaped instead of becoming fields.
 
 **The single worst outcome** — the one I'd least want to explain to a writer
@@ -774,17 +776,17 @@ I'd go for fewer wrong accusations: widen the unsure band and only say "confiden
 
      SUBMISSION CHECKLIST — unit 8
 
-       [ ] Rate limiting on /submit, with your numbers justified
-       [ ] The pasted run of status codes showing 429
-       [ ] Audit log with all nine fields, recording rejections too
-       [ ] The attack set run IN FULL, every input with an outcome
-       [ ] Ten audit log entries pasted as text
-       [ ] Five criteria across three trials
-       [ ] A diagnosis for every miss and every broken attack — stage AND mechanism
-       [ ] One improvement, with Attack Run — After
-       [ ] What's Still Broken, including the production trade
-       [ ] At least four new commits
-       [ ] The SAME repository URL as last unit
+       [x] Rate limiting on /submit, with your numbers justified
+       [x] The pasted run of status codes showing 429
+       [x] Audit log with all nine fields, recording rejections too
+       [x] The attack set run IN FULL, every input with an outcome
+       [x] Ten audit log entries pasted as text
+       [x] Five criteria across three trials
+       [x] A diagnosis for every miss and every broken attack — stage AND mechanism
+       [x] One improvement, with Attack Run — After
+       [x] What's Still Broken, including the production trade
+       [x] At least four new commits
+       [x] The SAME repository URL as last unit
 
      Do not delete and recreate this repository.
      ═════════════════════════════════════════════════════════════════════ -->

@@ -599,9 +599,26 @@ Criterion 5: trial 1, from `run_eval.py::main` → `app.py::submit`:
 
      Look for a pattern. Five failures on one signal is one problem, not five. -->
 
+All five criteria were met, so every diagnosis below is for a broken attack. The 12 breaks fall into three patterns. For reference, the clean AI paragraph the evasion attacks are built from scores model 0.669 / style 0.499 / combined **0.601 (unsure)** before any attack is applied. My system doesn't confidently catch plain AI text even with no tricks.
 
+**Pattern A: AI text labelled human (EV01, EV05, EV08, PI02)**
 
----
+- **EV01 (typos). Stage: signal one.** The typos didn't fool the style signal: spread, word variety and punctuation are identical to the clean paragraph. But they dropped the model score from 0.669 to 0.164 (combined 0.601 → 0.298). Misspelled words break the token probability distributions: GPT-2 splits them into rare sub-word pieces it finds very surprising, so perplexity goes up and the model's AI score goes down.
+- **PI02 (fake "SYSTEM:" message). Stages: signal one and signal two.** It wasn't the meaning of the instruction that lowered the score, since my model doesn't follow instructions. It was the fragmentation, short length and abrupt syntax breaks. Odd tokens like `SYSTEM:`, `guess=human, confidence=0.02` and the cut-off `Th` are surprising to GPT-2, so model score fell to 0.204. The short, choppy lines also raised sentence-length spread to 0.65, which my style signal reads as human (style 0.222).
+- **EV05 (heavy human editing pass). Stages: signal two, and signal one.** The drastic drop in style score (0.157) was driven primarily by the spike in sentence-length spread from 0.16 to 0.68, as the human rewrite shattered the even, repetitive sentence rhythm of the original AI text. Word variety actually went down slightly (0.94 → 0.86), so it wasn't vocabulary. Given that a full human rewrite fundamentally changes authorship, this sample behaves more like authentic human text than corrupted AI output. It's marked BROKE by my rule, but it may be a "held" in disguise.
+- **EV08 (two sentences, 10 words). Stage: signal one.** A perplexity score calculated on about 12 tokens is statistically unreliable, because a handful of words can disproportionately skew the probability distribution. With the style signal sitting near neutral (0.488), the model score (0.245) alone decided the final verdict.
+
+**Were my targets too low?** Yes, in one place. All five criteria were met while the attack set broke 12 times, because criterion 1 only tested casual text messages. I would tighten criterion 1 by expanding the test set to include formal and professional prose (technical docs, cover letters, essays written to a rubric). My personal writing samples should cover the same register where the false positives actually happened in FP05–07.
+
+**Pattern B: real human writing labelled AI (FP05, FP06, FP07; FP02 nearly, at 0.687)**
+
+- **FP05 (technical docs), FP06 (cover letter). Stage: signal one, amplified by the combining rule.** Predictable, highly formulaic text uses standard vocabulary and rigid structural patterns that closely mimic the low-perplexity, uniform generation style of LLMs. Model scores were 0.800 and 0.881. FP05's style score (0.770) agreed, because its vocabulary repeats (word variety 0.63) and it has almost no punctuation.
+- **FP07 (deliberate repetition). Stages: signal one and signal two, amplified by the combining rule.** Intentional repetition hurts word variety (type-token ratio 0.53), which pushes the style signal toward AI (0.558). Sentence-length spread stayed human-like at 0.73, so variety was the only style measure fooled. Meanwhile the 0.6 weight on the model amplified the false positive: predictable phrasing means low perplexity, and low perplexity is a high AI score (0.882).
+
+**Pattern C: confident verdicts on things that aren't writing (MF03–MF07)**
+
+- **Stage: signal two (the cause of the blind spot) and the route (where it should have been stopped).** The `words()` regex in `stylometry.py` is `[a-z0-9']+` on lowercased text, which only matches ASCII letters and digits. It ignores non-Latin Unicode like Arabic script, and emoji, so MF06 and MF07 count as zero words. MF04 (only punctuation) counts zero as well.
+- Because the style signal defaults to a neutral 0.5 when it finds no words, the model score single-handedly drove the verdict. That pushed it to an extreme in both directions: near 1.0 for emoji, Arabic and the long repeated word (MF05, MF06, MF07 → AI), and near 0.0 for control characters and punctuation (MF03, MF04 → human). This input should have been refused at the route, before it reached the signals, with a guardrail that requires enough real words to score.
 
 ## The Improvement
 

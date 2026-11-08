@@ -192,31 +192,40 @@ curl "http://127.0.0.1:5000/log?limit=2"
 - *What came back:* An explanation that log_appeal required the creator_id argument, which could be retrieved by querying existing audit entries for that content_id
 - *What I changed:* Updated the appeal() handler to fetch the original creator_id from audit.entries_for(content_id) before calling audit.log_appeal
 
+**Moment 3**
+
+- *What I asked for:* Help getting the unit 7 submission ready, after finding `stylometry.py` and `scoring.py` were still the starter stubs
+- *What came back:* Claude (Claude Code) wrote the three style measures and `style_signal` in `stylometry.py`, the weighted-average rule and label mapping in `scoring.py`, and set the 0.6 / 0.4 weights and 0.35 / 0.70 thresholds in `config.py` to match the rule I had described in this README
+- *What I changed:* Checked the scores on human, AI and plain-writing samples before keeping it, and re-ran the sample submission and appeal with the finished code
+
+**Moment 4**
+
+- *What I asked for:* Help with unit 8 Milestone 1: turning on rate limiting and logging refused requests
+- *What came back:* Claude turned the limiter on at 5 per minute / 50 per day and added a `_reject` helper in `app.py` so every 400 and 404 is written to the audit log with `audit.log_rejection`
+- *What I changed:* Ran the flood test and checked the log entries for the 429s and 400s myself
+
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 
 ---
 
 ## Rate Limiting
 
-**My limits:** ___ per minute, ___ per day
+**My limits:** 5 per minute, 50 per day
 
 **Why those numbers and not others:**
-<!-- Think about two people: a real writer submitting their own work a few
-     times an hour, and a script sending a thousand variations to map your
-     thresholds. Your numbers have to be liveable for the first and hostile to
-     the second. -->
+A real writer submits their own work a few times an hour at most, and even someone re-checking a draft after small edits rarely sends more than one or two a minute, so 5 a minute and 50 a day never gets in their way. A script trying to map my thresholds needs hundreds or thousands of near-identical variations; at 5 a minute it would take hours to send even a few hundred, and 50 a day caps any one caller well below what threshold-mapping needs.
 
-**What a caller counts as:** <!-- per address, or per creator_id? They fail
-differently — one script can look like a thousand callers, and one household
-can look like one. -->
-
-**The run of status codes when I pushed past it:**
+**What a caller counts as:** Per `creator_id`, falling back to the caller's address when a request has no usable `creator_id` (`app.py::rate_limit_key`). The weakness is that `creator_id` is whatever the caller types, so one script can rotate through a thousand made-up IDs and look like a thousand writers. Keying on address instead would catch that script, but it would also lump together everyone behind one shared network (a household, a school), so they would share one limit.
 
 <!-- python run_attacks.py --flood 15 -->
 
-```
+**The run of status codes when I pushed past it:** (`results/flood_2026-11-08_1421.md`, 15 submissions as `flood_tester`)
 
 ```
+200 200 200 200 200 429 429 429 429 429 429 429 429 429 429
+```
+
+Every one of the ten 429s was written to `logs/audit.jsonl` as a `rejected` entry with `"reason": "rate_limited"` and `"limit": "5 per 1 minute"`.
 
 ---
 

@@ -153,8 +153,20 @@ def health():
 
 # ── YOU BUILD THIS ────────────────────────────────────────────────────────────
 
+def _reject(payload, route, message, code=400, error="bad_request"):
+    """Refuse a request, and leave a trace of it in the audit log."""
+    creator = payload.get("creator_id") if isinstance(payload, dict) else None
+    audit.log_rejection(
+        creator_id=creator if isinstance(creator, str) and creator else "unknown",
+        reason=error,
+        route=route,
+        status_code=code,
+        message=message,
+    )
+    return jsonify({"error": error, "message": message}), code
+
 @app.post("/submit")
-# @limiter.limit(f"{config.RATE_LIMIT_PER_MINUTE}/minute;{config.RATE_LIMIT_PER_DAY}/day")
+@limiter.limit(f"{config.RATE_LIMIT_PER_MINUTE}/minute;{config.RATE_LIMIT_PER_DAY}/day")
 def submit():
     """
     Take a piece of text, decide about it, log the decision, answer.
@@ -163,19 +175,19 @@ def submit():
     
     # ── Robust Bad Input Handling (Acceptance Criterion #5) ──
     if not isinstance(payload, dict):
-        return jsonify({"error": "bad_request", "message": "Payload must be a JSON object."}), 400
+        return _reject(payload, "/submit", "Payload must be a JSON object.")
 
     text = payload.get("text")
     creator_id = payload.get("creator_id")
 
     if not text or not isinstance(text, str) or not text.strip():
-        return jsonify({"error": "bad_request", "message": "Missing or empty 'text' field."}), 400
+        return _reject(payload, "/submit", "Missing or empty 'text' field.")
 
     if not creator_id or not isinstance(creator_id, str):
-        return jsonify({"error": "bad_request", "message": "Missing or invalid 'creator_id' field."}), 400
+        return _reject(payload, "/submit", "Missing or invalid 'creator_id' field.")
 
     if len(text.split()) > 10000:
-        return jsonify({"error": "bad_request", "message": "Text exceeds maximum allowed length of 10,000 words."}), 400
+        return _reject(payload, "/submit", "Text exceeds maximum allowed length of 10,000 words.")
 
     content_id = str(uuid.uuid4())
 
@@ -183,7 +195,7 @@ def submit():
     try:
         model_score = detector.model_signal(text)
     except ValueError as exc:
-        return jsonify({"error": "bad_request", "message": str(exc)}), 400
+        return _reject(payload, "/submit", str(exc))
     style_score = stylometry.style_signal(text)
 
     # Combine scores and map to label
@@ -220,21 +232,21 @@ def appeal():
     """
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
-        return jsonify({"error": "bad_request", "message": "Payload must be a JSON object."}), 400
+        return _reject(payload, "/appeal", "Payload must be a JSON object.")
 
     content_id = payload.get("content_id")
     reasoning = payload.get("reasoning")
 
     if not content_id or not isinstance(content_id, str):
-        return jsonify({"error": "bad_request", "message": "Missing or invalid 'content_id'."}), 400
+        return _reject(payload, "/appeal", "Missing or invalid 'content_id'.")
 
     if not reasoning or not isinstance(reasoning, str) or not reasoning.strip():
-        return jsonify({"error": "bad_request", "message": "Missing or empty 'reasoning'."}), 400
+        return _reject(payload, "/appeal", "Missing or empty 'reasoning'.")
 
     # 1. Check if content_id actually exists in audit log entries
     existing_entries = audit.entries_for(content_id)
     if not existing_entries:
-        return jsonify({"error": "not_found", "message": f"Content ID '{content_id}' not found in audit logs."}), 404
+        return _reject(payload, "/appeal", f"Content ID '{content_id}' not found in audit logs.", 404, "not_found")
 
     # Get the creator_id from the original submission record
     creator_id = existing_entries[0].get("creator_id", "unknown")
